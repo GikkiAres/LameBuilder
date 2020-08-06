@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION="0.0.1"
+VERSION="0.0.2"
 AUTHOR="GikkiAres"
 EMAIL="GikkiAres@icloud.com"
 echo "Welcome to use lame builder for iOS,version:${VERSION}"
@@ -51,7 +51,7 @@ CONFIGURE_CMD=""
 LIB=""
 
 #4 是否编译和是否合并
-COMPILE=0
+COMPILE=1
 LIPO=1
 
 # --------- Complile start ---------
@@ -126,10 +126,12 @@ then
         $CPU \
         CPPFLAGS="$CFLAGS" \
 
-        make clean
+        
 		make -j8
 		make install
 		echo "Building binariy for $ARCH finish"
+        make clean
+        make distclean
 
 		#显示该架构下的lib库文件信息.
         cd $THIN/$ARCH/lib/
