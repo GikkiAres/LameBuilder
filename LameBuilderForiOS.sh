@@ -1,173 +1,175 @@
 #!/bin/sh
 
-VERSION="0.0.1"
-AUTHOR="GikkiAres"
-EMAIL="GikkiAres@icloud.com"
-echo "Welcome to use lame builder for iOS,version:${VERSION}"
-sleep 3
-echo "If you have any problem using this build file,you can communicate with the author by email address: ${EMAIL}"
-sleep 3
-echo "Now let's starting,you should have a cup of coffee..."
+# ------
+# User Config
+# ------
 
-#1 指定要编译的指令集,常见的有arm64,armv7s,x86_64,i386, armv7已经比较旧了.
-#ARCHS="arm64 armv7s x86_64 i386"
-ARCHS="i386 x86_64 arm64 armv7s"
+libPath=/Users/gikkiares/Desktop/0301_MyData/05_音视频开源工具库/01_Lame/01_软件源码/lame-3.100
+archs="i386 x86_64 armv7 arm64"
 
-#2 指定路径
-#2.1 当前路径,应该将该sh文件,放到库的根目录下.
-CWD=`pwd`
-#2.2 各个指令集的单独库的目录路径
-THIN="${CWD}/thin"
-#2.3 混合库的目录路径
-FAT="${CWD}/fat"
+# ------
+# Description
+# ------
 
-#3 configure参数
-CONFIGURE_FLAGS="--enable-static --disable-shared --disable-frontend"
-#host,目标机器指令集
-HOST=""
-# 本机的指令集
-ARCH_SELF=""
-#CFLAGS
-CFLAGS=""
-#LDFLAGS
-LDFLAGS=""
-#CPPFLAGS
-CPPFLAGS=""
-#CPU
-CPU=""
-#AS
-AS=""
-#CPP
-CPP=""
-#CXX
-CXX=""
-#CC
-CC=""
-#prefix,输出文件夹,绝对路径
-PREFIX=""
-# 配置的完整命令
-CONFIGURE_CMD=""
-# 导出的库的name,在运行中得到;
-LIB=""
+# This shell is to compile lame for ${archs},compile thin lib for each,and then merge them to a fat lib.
+# You must configure the lame path and archs you want.
+#
 
-#4 是否编译和是否合并
-COMPILE=0
-LIPO=1
 
-# --------- Complile start ---------
+# ------
+# Program Begin
+# ------
+author="GikkiAres"
+email="GikkiAres@icloud.com"
+shellName=LameBuilderForiOS
+versionName="0.0.2"
+versionCode="0"
+updateTime="2020-11-18"
+thinDirPath="${libPath}/../Build/Thin"
+fatDirPath="${libPath}/../Build/Fat"
+cd ${libPath}
 
-if [ $COMPILE == 1 ]
-then
-	echo "Compile begin... "
-	for ARCH in $ARCHS
-	do
-		echo "Building binariy for $ARCH..."
-        sleep 3
+function greet() {
+    echo "Welcome to use ${shellName},current version is:${versionName}(${versionCode}),update time is:${updateTime}"
+    sleep 3
+    echo "If you have any problem using this build file,you can communicate me by email address: ${email}"
+    sleep 3
+    echo "Now let's start,you should have a cup of coffee..."
+    sleep 3
+}
 
-		if [ $ARCH = "i386" -o $ARCH = "x86_64" ]
-		then
-			PLATFORM="iPhoneSimulator"
-			if [ "$ARCH" = "x86_64" ]
-			then
-				HOST="--host=x86_64-apple-darwin"
-			else
-				
-				HOST="--host=i386-apple-darwin"
-			fi
-		else
-			PLATFORM="iPhoneOS"
-			if [ $ARCH = "arm64" ]
-			then
-                HOST="--host=arm-apple-darwin"
-			else
-				HOST="--host=arm-apple-darwin"
-			fi
-			
-		fi
-        CFLAGS="-arch $ARCH -fembed-bitcode -miphoneos-version-min=7.0"
-        #将PLATFORM的值全部小写
-		XCRUN_SDK=`echo $PLATFORM | tr [:upper:] [:lower:]`
-		CC="xcrun -sdk $XCRUN_SDK clang -arch $ARCH"
-		CXXFLAGS="$CFLAGS"
-		LDFLAGS="$CFLAGS"
-		PREFIX="$THIN/$ARCH"
-        # 使用./config.guess命令得到本机的指令集,该程序由库文件提供
-        ARCH_SELF=`./config.guess`
+function complie_i386() {
+    archName="i386"
+    export CC="xcrun -sdk iphonesimulator clang -arch ${archName}"
+    export CFLAGS="-arch ${archName} -fembed-bitcode -mios-simulator-version-min=8.0"
+    export LDFLAGS="-arch ${archName} -fembed-bitcode -mios-simulator-version-min=8.0"
+    export CPP="${CC} -E"
+    export CPPFLAGS=${CFLAGS}
+    export CXX=${CC}
+    export CXXFLAGS=${CFLAGS}
+    export AS="xcrun -sdk iphonesimulator clang"  
+    
+    ./configure \
+        --prefix="${thinDirPath}/${archName}" \
+        --disable-shared \
+        --enable-static \
+        --disable-frontend \
+        --host=i386-apple-darwin
 
-        echo "\$configure_flags is : $CONFIGURE_FLAGS"
-        echo "\$HOST is : $HOST"
-        echo "\$CPU is : $CPU"
-        echo "\$CC is : $CC"
-        echo "\$CXX is : $CXX"
-        echo "\$CPP is : $CPP"
-        echo "\$AS is : $AS"
-        echo "\$CFLAGS is : $CFLAGS"
-        echo "\$LDFLAGS is : $LDFLAGS"
-        echo "\$CPPFLAGS is : $CPPFLAGS"
-        echo "\$prefix is : $PREFIX"
-        echo "\$ARCH_SELF is : $ARCH_SELF"
+    make clean
+    make -j8
+    make install
+}
+function complie_x86_64() {
+    archName="x86_64"
+    export CC="xcrun -sdk iphonesimulator clang -arch ${archName}"
+    export CFLAGS="-arch ${archName} -fembed-bitcode -mios-simulator-version-min=8.0"
+    export LDFLAGS="-arch ${archName} -fembed-bitcode -mios-simulator-version-min=8.0"
+    export CPP="${CC} -E"
+    export CPPFLAGS=${CFLAGS}
+    export CXX=${CC}
+    export CXXFLAGS=${CFLAGS}
+    export AS="xcrun -sdk iphonesimulator clang"  
 
-  # 必要的编译参数:CONFIGURE_FLAGS HOST BUILD CC CFLAGS LDFLAGS PREFIX
-  # 非必要的:CXX CPP AS
-		CONFIGURE_CMD="$CWD/configure $CONFIGURE_FLAGS $HOST --build=$ARCH_SELF $CPU CC=$CC CXX=$CC CPP=$CC -E $AS CFLAGS=$CFLAGS LDFAGS=$LDFLAGS CPPFLAGS=$CFLAGS --prefix=$PREFIX"
-		echo "Configure command is: $CONFIGURE_CMD"
-        
-		$CWD/configure \
-		$CONFIGURE_FLAGS \
-		$HOST \
-		--build=$ARCH_SELF \
-		CC="$CC" \
-		CFLAGS="$CFLAGS" \
-		LDFLAGS="$LDFLAGS" \
-		--prefix="$PREFIX"
-#        CXX="$CC" \
-        CPP="$CC -E" \
-        AS="$AS" \
-        $CPU \
-        CPPFLAGS="$CFLAGS" \
+    ./configure \
+        --prefix="${thinDirPath}/${archName}" \
+        --disable-shared \
+        --enable-static \
+        --disable-frontend \
+        --host=x86_64-apple-darwin
 
-        make clean
-		make -j8
-		make install
-		echo "Building binariy for $ARCH finish"
+    make clean
+    make -j8
+    make install
+}
 
-		#显示该架构下的lib库文件信息.
-        cd $THIN/$ARCH/lib/
-        for LIB in *.a
-        do
-            lipo -info $THIN/$ARCH/lib/$LIB
-        done
-	done
-	echo "Compile finish."
-else
-	echo "Choose not compile ..."
-fi
+function complie_armv7() {
+    archName="armv7"
+    export CC="xcrun -sdk iphoneos clang -arch ${archName}"
+    export CFLAGS="-arch ${archName} -fembed-bitcode -miphoneos-version-min=8.0"
+    export LDFLAGS="-arch ${archName} -fembed-bitcode -miphoneos-version-min=8.0"
+    export CPP="${CC} -E"
+    export CPPFLAGS=${CFLAGS}
+    export CXX=${CC}
+    export CXXFLAGS=${CFLAGS}
+    export AS="xcrun -sdk iphoneos clang"  
+    
+    ./configure \
+        --prefix="${thinDirPath}/${archName}" \
+        --disable-shared \
+        --enable-static \
+        --disable-frontend \
+        --host=arm-apple-darwin
 
-if [ $LIPO == 1 ]
-then
-    echo "Building fat binaries,start."
-    #创建文件夹FAT/lib
-    mkdir -p $FAT/lib
-    set - $ARCHS
-    CWD=`pwd`
-    cd $THIN/$1/lib
-    for LIB in *.a
+    make clean
+    make -j8
+    make install
+}
+
+function complie_arm64() {
+        archName="arm64"
+        export CC="xcrun -sdk iphoneos clang -arch ${archName}"
+        export CFLAGS="-arch ${archName} -fembed-bitcode -miphoneos-version-min=8.0"
+        export LDFLAGS="-arch ${archName} -fembed-bitcode -miphoneos-version-min=8.0"
+        export CPP="${CC} -E"
+        export CPPFLAGS=${CFLAGS}
+        export CXX=${CC}
+        export CXXFLAGS=${CFLAGS}
+        export AS="xcrun -sdk iphoneos clang"  
+
+    ./configure \
+        --prefix="${thinDirPath}/${archName}" \
+        --disable-shared \
+        --enable-static \
+        --disable-frontend \
+        --host=aarch64-apple-darwin       
+
+    make clean
+    make -j8
+    make install
+}
+
+
+#1 要用的函数
+function printVarOfName() {
+    name=$1
+    eval value=\$$1
+    if [ "$value" ]
+    then
+        echo "$name is : \n$value"
+    fi
+}
+
+function mergeThinToFat() {
+    echo "Merge,begin"
+    #创建胖子库/lib文件夹
+    mkdir -p $fatDirPath/lib
+    set - $archs
+    cd $thinDirPath/$1/lib
+    for libName in *.a
     do
-        echo "\$LIB is $LIB"
-        #创建查找命令,查找THIN目录下,各个架构的库文件.
-        cmdFind="find $THIN -name $LIB"
-        echo "cmdFind is : \n $cmdFind"
-        #`执行并保存结果,结果为一个字符串数组.
-        resFind=`$cmdFind`
-        echo "result of find is : \n $resFind"
-        FAT_LIB="$FAT/lib/$LIB"
-        echo "Output file is: $FAT_LIB"
-        echo "cmdLipo is: lipo -create `$cmdFind` -output $FAT_LIB"
-        lipo -create `$cmdFind` -output $FAT_LIB
+        # 针对当前目录的每一个.a文件,从thinDir中,寻找同名的,进行合并
+        # 放到变量之中后,变成一个字符串了,而不是数组.
+        thinLibPath=`find $thinDirPath -name $libName`
+        printVarOfName thinLibPath
+        lipo -create `find $thinDirPath -name $libName` -output $fatDirPath/lib/$libName
     done
-    # 把第一个架构的头文件移到FAT中,头文件都是一样的.
-    cp -rf $THIN/$1/include $FAT
-    lipo -info $FAT/lib/$LIB
-    echo "Building fat binaries,finish."
-fi
-echo "Operation done."
+
+    # 复制头文件到fatDirPath/include下
+    cp -rf $thinDirPath/$1/include $fatDirPath
+
+    echo "Merge,compete"
+}
+
+function finish() {
+    echo "All job finished."
+}
+
+
+greet
+complie_x86_64
+complie_i386
+complie_armv7
+complie_arm64
+mergeThinToFat
+finish
